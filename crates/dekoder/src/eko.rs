@@ -1,7 +1,7 @@
 //! Utilities for reading and writing an eko output.
 use std::fs::File;
 use std::fs::remove_dir_all;
-use std::io::BufWriter;
+use std::io::{BufWriter, Read};
 use std::path::PathBuf;
 use yaml_rust2::Yaml;
 
@@ -11,6 +11,12 @@ use crate::{EKOError, Operator, Result};
 const EP_CMP_RTOL: f64 = 1e-5;
 /// Default abs. error for the float comparison inside `EvolutionPoint`.
 const EP_CMP_ATOL: f64 = 1e-3;
+/// Metadata file name.
+const METADATA_FILE: &str = "metadata.yaml";
+/// Theory card file name.
+const THEORY_FILE: &str = "theory.yaml";
+/// Operator card file name.
+const OPERATOR_FILE: &str = "operator.yaml";
 
 /// A reference point in the evolution atlas.
 pub struct EvolutionPoint {
@@ -129,5 +135,46 @@ impl EKO {
     pub fn load_operator(&self, ep: &EvolutionPoint) -> Result<Operator> {
         self.assert_working_dir()?;
         self.operators.load(ep)
+    }
+    /// Read metadata, theory and operator cards from an EKO archive `src`,
+    /// without extracting the (large) operators.
+    /// Returns the raw yaml contents as `(metadata, theory, operator)`.
+    pub fn read_eko_cards(src: PathBuf) -> Result<(String, String, String)> {
+        let mut ar = tar::Archive::new(File::open(src)?);
+
+        let mut metadata: Option<String> = None;
+        let mut theory: Option<String> = None;
+        let mut operator: Option<String> = None;
+
+        for entry in ar.entries()? {
+            let mut entry = entry?;
+            // get the file name (last component of the path)
+            let name = entry
+                .path()?
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned());
+
+            let name = match name {
+                Some(n) => n,
+                None => continue,
+            };
+
+            let target = match name.as_str() {
+                METADATA_FILE => &mut metadata,
+                THEORY_FILE => &mut theory,
+                OPERATOR_FILE => &mut operator,
+                _ => continue,
+            };
+
+            let mut contents = String::new();
+            entry.read_to_string(&mut contents)?;
+            *target = Some(contents);
+        }
+
+        Ok((
+            metadata.ok_or(EKOError::KeyError("metadata.yaml not found".to_owned()))?,
+            theory.ok_or(EKOError::KeyError("theory.yaml not found".to_owned()))?,
+            operator.ok_or(EKOError::KeyError("operator.yaml not found".to_owned()))?,
+        ))
     }
 }
