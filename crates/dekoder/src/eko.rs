@@ -136,6 +136,7 @@ impl EKO {
         self.assert_working_dir()?;
         self.operators.load(ep)
     }
+
     /// Read metadata, theory and operator cards from an EKO archive `src`,
     /// without extracting the (large) operators.
     /// Returns the raw yaml contents as `(metadata, theory, operator)`.

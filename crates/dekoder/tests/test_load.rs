@@ -86,17 +86,11 @@ fn load_operator() {
     assert!(op.dim().0 == operator.err.unwrap().dim().0);
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_read_eko_cards() {
-        let src = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/data/v3.tar");
-        let (metadata, theory, operator) = EKO::read_eko_cards(src).unwrap();
-
-        assert!(!metadata.is_empty());
-        assert!(!theory.is_empty());
-        assert!(!operator.is_empty());
-    }
+#[test]
+fn read_eko_cards() {
+    let src = v3tar();
+    let (metadata, theory, operator) = EKO::read_eko_cards(src).unwrap();
+    assert!(!metadata.is_empty());
+    assert!(!theory.is_empty());
+    assert!(!operator.is_empty());
 }
