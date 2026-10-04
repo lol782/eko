@@ -1,4 +1,5 @@
 //! Utilities for reading and writing an eko output.
+use std::ffi::OsStr;
 use std::fs::File;
 use std::fs::remove_dir_all;
 use std::io::{BufWriter, Read};
@@ -138,7 +139,6 @@ impl EKO {
     }
 
     /// Read metadata and cards from `src`.
-    /// 
     /// The function avoids extracting the (large) operators.
     /// Returns the raw yaml contents as `(metadata, theory, operator)`.
     pub fn read_eko_cards(src: PathBuf) -> Result<(String, String, String)> {
@@ -151,20 +151,18 @@ impl EKO {
         for entry in ar.entries()? {
             let mut entry = entry?;
             // get the file name (last component of the path)
-            let name = entry
-                .path()?
-                .file_name()
-                .map(|n| n.to_string_lossy().into_owned());
+            let path = entry.path()?;
+            let name = path.file_name();
 
             let name = match name {
                 Some(n) => n,
                 None => continue,
             };
 
-            let target = match name.as_str() {
-                METADATA_FILE => &mut metadata,
-                THEORY_FILE => &mut theory,
-                OPERATOR_FILE => &mut operator,
+            let target = match name {
+                n if n == OsStr::new(METADATA_FILE) => &mut metadata,
+                n if n == OsStr::new(THEORY_FILE) => &mut theory,
+                n if n == OsStr::new(OPERATOR_FILE) => &mut operator,
                 _ => continue,
             };
 
@@ -174,9 +172,18 @@ impl EKO {
         }
 
         Ok((
-            metadata.ok_or(EKOError::KeyError("metadata.yaml not found".to_owned()))?,
-            theory.ok_or(EKOError::KeyError("theory.yaml not found".to_owned()))?,
-            operator.ok_or(EKOError::KeyError("operator.yaml not found".to_owned()))?,
+            metadata.ok_or(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("{METADATA_FILE} not found"),
+            ))?,
+            theory.ok_or(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("{THEORY_FILE} not found"),
+            ))?,
+            operator.ok_or(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("{OPERATOR_FILE} not found"),
+            ))?,
         ))
     }
 }
