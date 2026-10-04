@@ -137,8 +137,9 @@ impl EKO {
         self.operators.load(ep)
     }
 
-    /// Read metadata, theory and operator cards from an EKO archive `src`,
-    /// without extracting the (large) operators.
+    /// Read metadata and cards from `src`.
+    /// 
+    /// The function avoids extracting the (large) operators.
     /// Returns the raw yaml contents as `(metadata, theory, operator)`.
     pub fn read_eko_cards(src: PathBuf) -> Result<(String, String, String)> {
         let mut ar = tar::Archive::new(File::open(src)?);
