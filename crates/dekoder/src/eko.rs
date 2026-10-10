@@ -149,7 +149,7 @@ impl EKO {
         let mut operator: Option<String> = None;
 
         for entry in ar.entries()? {
-            let mut entry = entry?;
+            let entry = entry?;  
             // get the file name (last component of the path)
             let path = entry.path()?;
             let name = path.file_name();
@@ -159,13 +159,17 @@ impl EKO {
                 None => continue,
             };
 
-            let target = match name {
-                n if n == OsStr::new(METADATA_FILE) => &mut metadata,
-                n if n == OsStr::new(THEORY_FILE) => &mut theory,
-                n if n == OsStr::new(OPERATOR_FILE) => &mut operator,
-                _ => continue,
+            let target = if name == OsStr::new(METADATA_FILE) {
+                &mut metadata
+            } else if name == OsStr::new(THEORY_FILE) {
+                &mut theory
+            } else if name == OsStr::new(OPERATOR_FILE) {
+                &mut operator
+            } else {
+                continue;
             };
-
+            
+            let mut entry = entry;    // used shadowing to make entry mutable
             let mut contents = String::new();
             entry.read_to_string(&mut contents)?;
             *target = Some(contents);
